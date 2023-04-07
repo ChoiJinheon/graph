@@ -1,0 +1,110 @@
+#include <iostream>
+#include <fstream>
+#include <cmath>
+using namespace std;
+const float pi = 3.141592;
+int main() {
+	char* header1; // char : 1byte
+	header1 = new char[12]; // header : 12byte
+	int* n;
+	n = (int*)header1;
+	*n = 500;  //sample 갯수 , 0-3
+	cout << "n의 주소" << n << endl;
+	float* f;
+	f = (float*)(header1 + 4);
+	*f = 1000; // 주파수 , 4-7
+	short* a;
+	a = (short*)(header1 + 8);
+	*a = 200; // 진폭 ,  8-9
+	short* p;
+	p = (short*)(header1 + 10);
+	*p = 12; // phase , 10-11
+
+	// data_A 생성
+	short* data_A;
+	data_A = new short[*n]; // 1000byte 할당
+	float dt = 1. / f[0] / 20.0;
+	for (int i = 0; i < *n; i++)
+		data_A[i] = (short)((*a) * sin(2.0 * pi * (*f) * i * dt));
+
+	// binary write -> a.dat
+	ofstream xx("a.dat", ios::binary | ios::out); 
+	if (!xx) return 666;
+	xx.write(header1, 12 * sizeof(char)); // 12byte
+	xx.close();
+
+	// binary write -> c.dat
+	ofstream xx2("c.dat", ios::binary | ios::out);
+	if (!xx2) return 666;
+	// data_A 값 대입
+	xx2.write((char*)data_A, (*n) * sizeof(short)); // 1000byte
+	xx2.close();
+
+	// binary read -> a.dat header data를 읽어온다.
+	ifstream xx_read("a.dat", ios::binary | ios::in);
+	if (!xx_read) return 666;
+	xx_read.read(header1, 12 * sizeof(char));
+	xx_read.close();
+	
+	// 기존의 f 확인
+	float* t;
+	t = (float*)(header1 + 4);
+	cout << " f : " << *t << endl; // 기존 f 출력
+
+	*f= 700.0; // 값 변경
+
+	// data_B 생성
+	short* data_B;
+	data_B = new short[*n]; // 1000byte의 data
+	for (int i = 0; i < n[0]; i++)
+		data_B[i] = (short)(a[0] * sin(2.0 * pi * (*f) * i * dt));
+
+	// binary write -> b.dat
+	ofstream yy("b.dat", ios::binary | ios::out);
+	if (!yy) return 666;
+	yy.write(header1, 12 * sizeof(char)); // 12byte
+	yy.close();
+
+	// binary write -> d.dat
+	ofstream yy2("d.dat", ios::binary | ios::out);
+	if (!yy2) return 666;
+	// data_B 값 대입
+	yy2.write((char*)data_B, (*n) * sizeof(short)); // 1000byte file 생성
+	yy2.close();
+
+	// header2 생성
+	char* header2 = new char[12];
+
+	// binary read -> a.dat에서 header2 data 가지고 옴
+	ifstream xx_read2("a.dat", ios::binary | ios::out);
+	if (!xx_read2) return 666;
+	xx_read2.read(header2, 12 * sizeof(char));
+	int* x = (int*)(header2); // *x = 500
+	xx_read2.close();
+
+	// data1, data2 생성
+	short* data1 = new short[*x];
+	short* data2 = new short[*x];
+
+	// data1에 정보 입력
+	ifstream xx2_read("c.dat", ios::binary | ios::out);
+	if (!xx2_read) return 666;
+	xx2_read.read((char*)data1, (*n) * sizeof(short));
+	xx2_read.close();
+
+
+	// data2에 정보 입력
+	ifstream yy2_read("d.dat", ios::binary | ios::out);
+	if (!yy2_read) return 666;
+	yy2_read.read((char*)data2, (*n) * sizeof(short));
+	yy2_read.close();
+
+	ofstream zz("c.txt");
+	if (!zz) return 666;
+	for (int i = 0; i < *n; i++) {
+		zz << i * dt << " " << data1[i] << " " << data2[i] << endl;
+	}
+	zz.close();
+
+	return 0;
+}
